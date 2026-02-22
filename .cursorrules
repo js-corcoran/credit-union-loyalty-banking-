@@ -1,0 +1,404 @@
+# Cursor Rules for Credit Union Loyalty Banking Experience
+
+## Project Context
+**Project**: Credit Union Loyalty Banking Experience
+**Target Users**: Credit union members aged 55+ (change-averse, stability-focused)
+**Core Objective**: Integrate a three-tier loyalty program into banking experience without disrupting familiar workflows
+**Tech Stack**: Next.js 14 + Tailwind CSS + Shadcn UI (Mode A design-first; Mode B backend recommended for production)
+
+## Accessibility (Non-Negotiable)
+- **WCAG 2.1 AAA baseline**: 16pt+ font, 7:1 contrast, 48px tap targets
+- **Design System**: All components enforce accessibility constraints via Tailwind tokens
+- **Testing**: axe-core in tests + manual WCAG review pre-launch + older demographic user testing (55–75 cohort)
+- **Navigation**: Max 1–2 levels of disclosure; deep hierarchies violate cognitive load principle
+
+## Core Design Principles
+1. **Additive, Never Disruptive**: Core banking workflows unchanged. Loyalty layers on top.
+2. **Transparency Over Oversimplification**: Tier rules complex but accurate. Multi-layer communication (summary + details + FAQ).
+3. **Cognitive Load Preservation**: Every UI element must justify its existence (helps member understand tier?) or be removed.
+4. **Proactive Retrogression Prevention**: Alerts before threshold crossed (30-day, 14-day warnings). Supportive tone ("maintain tier"), never alarming.
+5. **Real-Dollar Benefits**: Always translate abstract percentages to member-specific dollar values (e.g., "+$25/year based on your $10K balance").
+6. **Self-Service Design**: FAQ and Hub designed as launch prerequisite (not post-launch addition). Target 11:1 self-service-to-support ratio.
+
+## Coding Conventions
+
+### File Organization
+```
+app/                        # Next.js App Router pages (one screen per route)
+├── layout.tsx              # Root layout + context providers
+├── page.tsx                # Home / Dashboard (SCR-01)
+├── loyalty/
+│   ├── page.tsx            # Loyalty Hub Main (SCR-02)
+│   ├── tier-details/page.tsx
+│   └── ...
+├── accounts/[id]/page.tsx   # Account Detail (SCR-08)
+└── ...
+
+components/
+├── loyalty/                # Loyalty-specific components
+│   ├── TierBadge.tsx       # Tier visual identifier
+│   ├── TierProgressBar.tsx
+│   ├── BenefitCard.tsx
+│   ├── BenefitValueCalculator.tsx
+│   ├── RetrogressionAlert.tsx
+│   └── ...
+├── ui/                     # Shadcn UI components (auto-generated)
+└── layout/
+
+lib/
+├── api.ts                  # Mock API layer (all data fetching abstracted)
+├── calculations.ts         # Pure functions: tier qualification, benefit calc
+├── types.ts                # TypeScript interfaces (Member, Tier, Benefit, etc.)
+├── constants.ts            # Tier config, design tokens, FAQ data
+├── hooks.ts                # useTierStatus, useBenefitValue, etc.
+└── formatting.ts           # Currency, date formatting
+
+context/
+├── MemberContext.tsx       # Current member profile, tier, accounts
+├── TierContext.tsx         # Tier configuration (all three tiers)
+└── NotificationContext.tsx # Notification state and preferences
+
+styles/
+├── globals.css             # Tailwind + global custom styles
+├── variables.css           # CSS custom properties (colors, spacing)
+└── accessibility.css       # Focus indicators, A11y-specific styles
+
+tests/
+├── components/
+│   ├── TierBadge.test.tsx
+│   └── ...
+├── lib/
+│   ├── calculations.test.ts
+│   └── ...
+└── integration/
+    ├── tier-progression-flow.test.tsx
+    └── ...
+```
+
+### Component Structure
+```typescript
+// File: components/loyalty/TierBadge.tsx
+'use client'
+
+import { TierType } from '@/lib/types'
+
+interface TierBadgeProps {
+  tier: TierType
+  size?: 'small' | 'medium' | 'large'
+  showLabel?: boolean
+}
+
+export function TierBadge({ tier, size = 'medium', showLabel = true }: TierBadgeProps) {
+  const tierConfig = {
+    classic: { color: '#6B7280', icon: '●', name: 'Classic' },
+    plus: { color: '#D4A574', icon: '✦', name: 'Plus' },
+    premium: { color: '#E8E8E8', icon: '◆', name: 'Premium' },
+  }
+
+  const config = tierConfig[tier]
+
+  return (
+    <div
+      className={`flex items-center gap-2 ${sizeClass[size]}`}
+      style={{ color: config.color }}
+      role="img"
+      aria-label={`${config.name} tier`}
+    >
+      <span className="text-lg">{config.icon}</span>
+      {showLabel && <span className="font-semibold">{config.name}</span>}
+    </div>
+  )
+}
+```
+
+### API Abstraction (Mock Data Initially)
+```typescript
+// File: lib/api.ts
+import { getMockMember } from './mock-data'
+
+export async function getTierStatus(memberId: string) {
+  // In Mode A: return mock data
+  // In Mode B: replace with real API call
+  return getMockMember(memberId)
+}
+
+export async function calculateBenefitValue(memberId: string, benefit: BenefitType) {
+  // In Mode A: return mock calculation
+  // In Mode B: call backend API
+  const member = await getMockMember(memberId)
+  return calculateMemberBenefit(member, benefit)
+}
+```
+
+### Testing Pattern
+```typescript
+// File: tests/lib/calculations.test.ts
+import { getTierQualification, calculateRollingBalance } from '@/lib/calculations'
+
+describe('Tier Qualification', () => {
+  test('Classic tier: balance $2,500 + 1 autopay', () => {
+    const result = getTierQualification({
+      balance: 2500,
+      autopayCount: 1,
+    })
+    expect(result).toBe('classic')
+  })
+
+  test('Rolling balance: average of 3-month end-of-day balances', () => {
+    const rolling = calculateRollingBalance([2600, 2500, 2400])
+    expect(rolling).toBe(2500)
+  })
+
+  test('Retrogression: tier drops if balance < minimum', () => {
+    const current = getTierQualification({ balance: 2400, autopayCount: 1 })
+    expect(current).toBe('none') // Below Classic minimum
+  })
+})
+```
+
+## Tier Calculation Rules (Hard-Coded in `lib/calculations.ts`)
+
+### Tier Thresholds
+- **Classic**: 3-month rolling balance ≥ $2,500 + ≥1 autopay (any type)
+- **Plus**: 3-month rolling balance ≥ $10,000 + ≥2 autopays (max 1 credit card)
+- **Premium**: 3-month rolling balance ≥ $25,000 + ≥3 autopays (max 2 credit cards)
+
+### Rolling Balance Definition
+- Average of balance on last day of month for past 3 months
+- Example: Oct 31: $2,600, Nov 30: $2,500, Dec 31: $2,400 → Average: $2,500
+
+### Retrogression
+- Grace period: 30 days after qualification criteria lapse before tier officially changes
+- Triggers: Balance drops below minimum OR required autopays expire
+- Alerts: 30-day warning, 14-day warning, 7-day warning, final confirmation
+
+## Tier Benefit Rules
+
+### Benefits by Tier
+| Benefit | Classic | Plus | Premium |
+|---------|---------|------|---------|
+| APY Boost | +0.10% | +0.25% | +0.50% |
+| Fee Waiver | Standard | Premium | Premium+ |
+| Third-Party Rewards | Basic | Enhanced (2X) | Premium (3X) |
+
+### Real-Dollar Display
+- **APY Boost**: `memberBalance * apyBoost / 100` = annual dollars
+- **Fee Waiver**: `estimatedTransfersPerMonth * 12 * feeAmount` = annual savings
+- **Third-Party Rewards**: Integrated with provider; estimated annual value based on spending
+
+## UI Component Rules
+
+### TierBadge Component
+- **Usage**: Home dashboard, Loyalty Hub, account cards
+- **Variants**: Small (32px), Medium (64px), Large (80px)
+- **Always Include**: Icon + color + tier name (never color alone for accessibility)
+- **Test IDs**: `tier-badge-${tier}-${size}`
+
+### TierProgressBar Component
+- **Usage**: Home dashboard, Loyalty Hub, account-specific pages
+- **Always Include**: Numeric labels (not visual fill only) for accessibility
+- **Format**: "$X,XXX of $Y,YYY" (member's balance / tier minimum)
+- **Display**: Always show next tier label and days-to-milestone estimate
+
+### BenefitCard Component
+- **Usage**: Loyalty Hub benefits section, Benefit Details page, contextual callouts
+- **Always Include**: Icon + benefit name + real-dollar annual value
+- **Format**: "Benefit Name: +$XX/year (based on your $X,XXX balance)"
+- **Variants**: Primary (member's current tier), Locked (not yet qualified), Comparison (what-if scenario)
+
+### RetrogressionAlert Component
+- **Usage**: Proactive notification when member approaching tier-loss threshold
+- **Tone**: Supportive ("To maintain Plus tier..."), never alarming ("You're losing...")
+- **Always Include**: Specific action needed and direct link to action flow
+- **Colors**: Warning amber (#F59E0B) for 30-day, urgent red (#EF4444) only for 14-day window
+
+## Design Tokens (Tailwind)
+
+### Color Palette
+```javascript
+// tailwind.config.js
+const colors = {
+  tier: {
+    classic: '#6B7280',   // Gray
+    plus: '#D4A574',      // Gold
+    premium: '#E8E8E8',   // Platinum
+  },
+  semantic: {
+    success: '#10B981',   // Emerald (benefits, achievements)
+    warning: '#F59E0B',   // Amber (approaching threshold, gentle alerts)
+    urgent: '#EF4444',    // Red (immediate tier loss risk, 14-day window)
+    neutral: '#F3F4F6',   // Light gray (backgrounds)
+  },
+  text: {
+    primary: '#111827',   // Dark gray (7:1 contrast on white)
+    secondary: '#6B7280', // Medium gray (4.5:1 contrast)
+  },
+}
+```
+
+### Spacing Scale
+- `8px` (micro), `12px`, `16px` (base), `24px`, `32px`, `48px` (XL)
+
+### Typography
+- Body: `16px` (all users, WCAG AAA baseline)
+- Headings: `h1: 28px`, `h2: 24px`, `h3: 20px`
+- Small: `14px` minimum (never smaller)
+
+### Touch Targets
+- Minimum: `44×44px` (WCAG AA)
+- Recommended: `48×48px` (WCAG AAA, older demographics)
+
+## Key Components to Build (Priority Order)
+
+### P0 (Core to Launch)
+1. **TierBadge** — Tier visual identifier
+2. **TierProgressBar** — Progress to next tier
+3. **BenefitCard** — Benefit display (APY, fee waiver, rewards)
+4. **RetrogressionAlert** — Proactive tier-loss warning
+5. **AccountCard (Enhanced)** — Home dashboard with tier badge
+
+### P1 (Learning & Details)
+6. **TierRulesAccordion** — Expandable tier requirement details
+7. **BenefitValueCalculator** — Real-dollar benefit personalization
+8. **TierComparisonTable** — Side-by-side tier comparison
+9. **LoyaltyContextCallout** — Inline benefit info in transfers/transactions
+10. **SearchBar + FAQList** — Full-text FAQ search
+
+## Accessibility Checklist (Per Component)
+
+- [ ] Text ≥16pt (body), ≥20pt (headings)
+- [ ] Contrast ≥7:1 on all text
+- [ ] Touch targets ≥48×48px
+- [ ] Color + icon + text (never color alone)
+- [ ] Semantic HTML (`<button>`, `<nav>`, `<main>`, etc.)
+- [ ] ARIA labels for images, regions, interactive elements
+- [ ] Keyboard navigation (Tab, Enter, Escape)
+- [ ] Focus indicators visible (outline or custom style)
+- [ ] Screen reader tested (NVDA on Windows, VoiceOver on Mac)
+
+## DO NOT Touch (Critical Boundaries)
+
+### Core Banking
+- ❌ DO NOT reorganize account summary or transactions
+- ❌ DO NOT add required steps to core banking flows
+- ❌ DO NOT change autopay setup (only add tier context)
+- ✅ DO layer loyalty contextually without friction
+
+### Tier Rules
+- ❌ DO NOT change tier thresholds without Product approval
+- ❌ DO NOT modify autopay counting or product limits
+- ❌ DO NOT add new benefit types without spec
+- ✅ DO implement exactly as specified
+
+### Privacy & Security
+- ❌ DO NOT expose member tier to other members
+- ❌ DO NOT collect data beyond balances, autopay, transactions
+- ✅ DO implement standard auth/session patterns
+
+## Testing Requirements
+
+### Unit Tests
+- Tier qualification logic (edge cases, grace periods, retrogression)
+- Benefit calculations (APY, fee waiver, rewards personalization)
+- Date threshold calculations (days until tier loss, milestone)
+- API mock layer
+
+### Accessibility Tests
+- **Automated**: axe-core in Jest suite
+- **Manual**: WCAG 2.1 AAA checklist (contrast, font size, touch targets, semantic HTML)
+- **User Testing**: 15–20% of test cohort aged 55–75
+
+### Integration Tests
+- User flows (everyday banking → Hub exploration → tier understanding)
+- Retrogression flow (alert → action → confirmation)
+- Legacy migration (program change communication → tier assignment)
+
+## Deployment Checklist
+
+### Pre-Launch
+- [ ] All P0 + P1 screens implemented and tested
+- [ ] Accessibility audit passed (WCAG 2.1 AAA)
+- [ ] Mode A fully functional with mock data
+- [ ] Tier configuration correct (Classic, Plus, Premium)
+- [ ] FAQ integrated (25–30 questions)
+- [ ] Customer service trained on scripts
+
+### Post-Launch
+- [ ] Monitor support volume (target: no increase day-1/2)
+- [ ] Track Loyalty Hub adoption (target: 70% within 30 days)
+- [ ] Analyze FAQ usage (identify gaps)
+- [ ] Member satisfaction survey (CSAT ≥4/5)
+
+## FAQ Integration (25–30 Questions Minimum)
+
+**Tier Qualification** (8–10 questions):
+- "How is my tier calculated?"
+- "What's a rolling balance?"
+- "What counts as an autopay?"
+- "What happens if I remove my autopay?"
+- "Can I have multiple autopays?"
+- "What if my balance drops?"
+- "Do I lose benefits immediately?"
+- "How do I re-qualify for a tier I lost?"
+
+**Benefits & Value** (5–7 questions):
+- "How is APY boost calculated?"
+- "How much can I save with [tier]?"
+- "What's included in fee waiver?"
+- "How do I redeem third-party rewards?"
+
+**Retrogression & Tier Loss** (5–7 questions):
+- "Why did my tier change?"
+- "How do I maintain my tier?"
+- "What's a grace period?"
+- "How do I re-qualify?"
+
+**Legacy Migration** (3–5 questions):
+- "Why did the program change?"
+- "Why are thresholds higher?"
+- "Am I losing benefits?"
+
+**Troubleshooting** (2–4 questions):
+- "Why doesn't my balance count?"
+- "What if I disagree with my tier?"
+- "Who should I contact for help?"
+
+## Performance Targets
+
+- **Page Load**: <3s (Core Web Vitals target)
+- **Task Completion**: Zero regression vs. pre-loyalty baseline
+- **FAQ Search**: Results within 500ms
+- **Benefit Calculation**: <1s on mobile, <500ms on desktop
+- **Tier Update**: Real-time (Mode A mock), daily batch (Mode B backend)
+
+## Feature Flags (For Future Phased Rollout)
+
+```typescript
+// lib/constants.ts
+export const FEATURE_FLAGS = {
+  LOYALTY_HUB_ENABLED: true,
+  RETROGRESSION_ALERTS_ENABLED: true,
+  REAL_DOLLAR_BENEFITS_ENABLED: true,
+  FAQ_SEARCH_ENABLED: true,
+  PHASED_ROLLOUT_ENABLED: false, // Set to true for Phase 2
+  PHASE_2_PERCENTAGE: 0, // Gradually increase to 100% for phased rollout
+}
+```
+
+## Common Pitfalls to Avoid
+
+1. **Oversimplifying Tier Rules**: Don't hide complexity in fine print. Be transparent.
+2. **Cognitive Overload**: Every UI element must justify its existence. Cut ruthlessly.
+3. **Color-Only Differentiation**: Always use icon + color + text for tier/status indicators.
+4. **Ignoring Retrogression Psychology**: Use supportive framing; proactive alerts prevent negative emotion.
+5. **Missing Accessibility Testing**: Don't rely on automated tools; test with real older users.
+6. **Skipping FAQ Design**: Treat FAQ as launch prerequisite, not post-launch addition.
+7. **Disrupting Core Flows**: Loyalty is a layer, not a redesign. Preserve existing patterns.
+
+## Success = Zero Friction + High Transparency + Accessible to All
+
+Build with older demographics in mind. If it works for 75-year-olds, it works for everyone.
+
+---
+
+**Questions?** Refer to `/CLAUDE.md` or specific step documents (03-experience-strategy.md, 04-prd.md, 05-ux-spec.md, 06-dev-spec.md).

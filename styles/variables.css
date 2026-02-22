@@ -1,0 +1,39 @@
+:root {
+  /* Tier Colors */
+  --color-tier-classic: #6B7280;
+  --color-tier-plus: #D4A574;
+  --color-tier-premium: #E8E8E8;
+
+  /* Semantic Colors */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-urgent: #EF4444;
+  --color-neutral: #F3F4F6;
+
+  /* Text Colors */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+
+  /* Typography */
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-body: 16px;
+  --font-size-h1: 28px;
+  --font-size-h2: 24px;
+  --font-size-h3: 20px;
+  --font-size-small: 14px;
+
+  /* Spacing */
+  --spacing-micro: 8px;
+  --spacing-sm: 12px;
+  --spacing-base: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  /* Touch Targets */
+  --touch-target-min: 44px;
+  --touch-target-recommended: 48px;
+
+  /* Container */
+  --container-max-width: 900px;
+}

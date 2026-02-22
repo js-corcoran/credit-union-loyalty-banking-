@@ -1,0 +1,44 @@
+/* Focus indicators */
+*:focus-visible {
+  outline: 3px solid #2563EB;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-text-primary);
+  color: #ffffff;
+  padding: var(--spacing-sm) var(--spacing-base);
+  z-index: 100;
+  font-size: var(--font-size-body);
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Minimum touch target sizing */
+button,
+a,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+}
