@@ -13,7 +13,11 @@ import { RollingBalanceDiagram } from '@/components/loyalty/RollingBalanceDiagra
 import { AutopayRulesTable } from '@/components/loyalty/AutopayRulesTable'
 import { GracePeriodExplainer } from '@/components/loyalty/GracePeriodExplainer'
 import { BenefitCard } from '@/components/loyalty/BenefitCard'
+import { TierProgressionCTA } from '@/components/loyalty/TierProgressionCTA'
+import { LoyaltyAmountBadge } from '@/components/loyalty/LoyaltyAmountBadge'
 import { Button } from '@/components/shared/Button'
+import { useTierGap } from '@/context/LoyaltyTransferContext'
+import { getTierDisplayName, getNextTier } from '@/lib/loyalty-transfer/utils'
 
 const tierNames: Record<TierType, string> = {
   classic: 'Classic',
@@ -109,6 +113,100 @@ function BenefitsForTier({
           {formatCurrency(totalValue)}/year
         </span>
       </p>
+    </section>
+  )
+}
+
+function TierProgressionSection({
+  data,
+  activeTier,
+}: {
+  data: TierDetailsResponse
+  activeTier: TierType
+}) {
+  const { gap, isLoading: gapLoading, refresh } = useTierGap()
+
+  const nextTier = getNextTier(data.currentTier)
+  const isCurrentOrLowerTier = activeTier === data.currentTier || (
+    activeTier === 'classic' && data.currentTier !== 'classic'
+  ) || (
+    activeTier === 'plus' && data.currentTier === 'premium'
+  )
+
+  const balanceGap = gap?.tierGapAmount ?? data.memberStatus.balanceGapToNextTier
+  const targetTier = nextTier ?? 'premium'
+  const targetTierConfig = data.tiers.find((t) => t.tierId === targetTier)
+
+  const tierBenefits = targetTierConfig?.benefits.map((b) => ({
+    label: b.benefitName,
+    value: b.description,
+    annualSavings: b.benefitType === 'apy-boost'
+      ? (data.memberStatus.qualifyingBalance * (b.apyBoostPercentage || 0)) / 100
+      : b.benefitType === 'fee-waiver'
+      ? 2 * 12 * (b.feeAmount || 0)
+      : 0,
+  })) ?? []
+
+  if (data.currentTier === 'premium') {
+    return (
+      <section aria-label="Actions" className="space-y-3">
+        <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4 text-center">
+          <p className="text-base font-semibold text-emerald-700">
+            You have reached the highest tier — Premium
+          </p>
+        </div>
+        <Link href="/loyalty/account-status">
+          <Button variant="secondary" size="md" className="w-full mt-3">
+            View your account status
+          </Button>
+        </Link>
+      </section>
+    )
+  }
+
+  return (
+    <section aria-label="Tier progression actions" className="space-y-4">
+      {/* Balance gap badge */}
+      {balanceGap > 0 && !isCurrentOrLowerTier && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-base text-gray-700">Balance gap:</span>
+          <LoyaltyAmountBadge
+            amount={balanceGap}
+            isStale={gap?.calculatedAt ? (Date.now() - new Date(gap.calculatedAt).getTime() > 15 * 60 * 1000) : false}
+            showRefresh
+            onRefresh={refresh}
+          />
+        </div>
+      )}
+
+      {/* Smart CTA */}
+      <TierProgressionCTA
+        currentTier={data.currentTier}
+        targetTier={targetTier}
+        tierGapAmount={balanceGap}
+        currentBalance={gap?.currentBalance ?? data.memberStatus.qualifyingBalance}
+        tierThreshold={gap?.nextTierThreshold ?? (targetTierConfig?.requirements.minimumBalance || 0)}
+        destinationAccountId={gap?.destinationAccountId ?? 'SAV-5432'}
+        destinationAccountName="Savings"
+        destinationBalance={gap?.currentBalance ?? data.memberStatus.qualifyingBalance}
+        tierBenefits={tierBenefits}
+        isLoading={gapLoading}
+        isDisabled={isCurrentOrLowerTier || balanceGap <= 0}
+        disabledReason={
+          isCurrentOrLowerTier
+            ? `You already qualify for ${getTierDisplayName(activeTier)}`
+            : balanceGap <= 0
+            ? `You already qualify for ${getTierDisplayName(targetTier)}`
+            : undefined
+        }
+      />
+
+      {/* Secondary action */}
+      <Link href="/loyalty/account-status">
+        <Button variant="secondary" size="md" className="w-full mt-2">
+          View your account status
+        </Button>
+      </Link>
     </section>
   )
 }
@@ -237,23 +335,11 @@ export default function TierDetailsPage() {
                 tierName={tierNames[activeTier]}
               />
 
-              {/* Action Section */}
-              <section aria-label="Actions" className="space-y-3">
-                {data.memberStatus.balanceGapToNextTier > 0 && data.currentTier !== 'premium' && (
-                  <Link href="/transfer">
-                    <Button variant="primary" size="lg" className="w-full">
-                      Increase balance by {formatCurrency(data.memberStatus.balanceGapToNextTier)} to reach {
-                        data.currentTier === 'classic' ? 'Plus' : 'Premium'
-                      }
-                    </Button>
-                  </Link>
-                )}
-                <Link href="/loyalty/account-status">
-                  <Button variant="secondary" size="md" className="w-full mt-3">
-                    View your account status
-                  </Button>
-                </Link>
-              </section>
+              {/* Smart Transfer CTA */}
+              <TierProgressionSection
+                data={data}
+                activeTier={activeTier}
+              />
             </div>
           </div>
         )}

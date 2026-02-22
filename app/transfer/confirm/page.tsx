@@ -1,19 +1,224 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTransfer } from '@/context/TransferContext'
+import { useTierGap } from '@/context/LoyaltyTransferContext'
 import { getAccountDetail, initiateTransfer, AccountDetail } from '@/lib/api'
 import { formatCurrency } from '@/lib/formatting'
+import { getTierDisplayName, getNextTier } from '@/lib/loyalty-transfer/utils'
+import { TierLevel } from '@/lib/loyalty-transfer/types'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/shared/Button'
 
 type Step = 'confirm' | 'processing' | 'success' | 'error'
 
+function LoyaltyImpactSection({
+  toAccountBalance,
+  amount,
+  targetTier,
+  gap,
+}: {
+  toAccountBalance: number
+  amount: number
+  targetTier: TierLevel
+  gap: ReturnType<typeof useTierGap>['gap']
+}) {
+  const projectedBalance = toAccountBalance + amount
+  const threshold = gap?.nextTierThreshold ?? 0
+  const wouldQualify = threshold > 0 && projectedBalance >= threshold
+  const targetName = getTierDisplayName(targetTier)
+
+  const tierBenefits = useMemo(() => {
+    if (targetTier === 'plus') {
+      return [
+        { label: 'APY on Savings', value: '0.95%', savings: 45 },
+        { label: 'ATM Fee Waiver', value: '$0.50/mo', savings: 6 },
+        { label: 'Included Autopays', value: '2 free', savings: 0 },
+      ]
+    }
+    if (targetTier === 'premium') {
+      return [
+        { label: 'APY on Savings', value: '1.25%', savings: 125 },
+        { label: 'ATM Fee Waiver', value: '$0.50/mo', savings: 6 },
+        { label: 'Included Autopays', value: 'Unlimited', savings: 0 },
+      ]
+    }
+    return [
+      { label: 'Standard APY', value: '0.25%', savings: 2 },
+    ]
+  }, [targetTier])
+
+  const totalSavings = tierBenefits.reduce((s, b) => s + b.savings, 0)
+
+  return (
+    <section
+      aria-label="Loyalty tier impact"
+      className={`rounded-xl p-5 mb-6 ${
+        wouldQualify
+          ? 'bg-teal-50 border border-teal-200'
+          : 'bg-amber-50 border border-amber-200'
+      }`}
+    >
+      <h2 className="text-base font-bold text-gray-900 mb-3">
+        Tier Impact
+      </h2>
+
+      <div className="space-y-3">
+        <div className="flex justify-between items-center py-2 border-b border-gray-200/50">
+          <span className="text-sm text-gray-600">Projected balance after transfer</span>
+          <span className="text-base font-bold text-gray-900">{formatCurrency(projectedBalance)}</span>
+        </div>
+
+        <div className="flex items-center gap-2 py-2">
+          {wouldQualify ? (
+            <>
+              <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-base font-semibold text-emerald-700">
+                Qualifies for {targetName} Tier
+              </span>
+            </>
+          ) : (
+            <>
+              <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
+                </svg>
+              </div>
+              <span className="text-base font-semibold text-amber-700">
+                Won&apos;t reach {targetName} Tier with this amount
+              </span>
+            </>
+          )}
+        </div>
+
+        {wouldQualify && (
+          <>
+            <div className="pt-2">
+              <p className="text-sm font-semibold text-gray-700 mb-2">{targetName} Tier Benefits:</p>
+              <ul className="space-y-1.5">
+                {tierBenefits.map((b) => (
+                  <li key={b.label} className="flex items-center gap-2 text-sm text-gray-700">
+                    <svg className="w-4 h-4 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {b.label} ({b.value})
+                    {b.savings > 0 && (
+                      <span className="text-emerald-600 font-medium">— saves ${b.savings}/yr</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="pt-2 border-t border-gray-200/50">
+              <p className="text-sm text-gray-600">
+                Est. annual savings:{' '}
+                <span className="font-bold text-emerald-600">{formatCurrency(totalSavings)}/year</span>
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function TierAchievementSection({
+  targetTier,
+  amount,
+  projectedBalance,
+}: {
+  targetTier: TierLevel
+  amount: number
+  projectedBalance: number
+}) {
+  const targetName = getTierDisplayName(targetTier)
+  const nextTier = getNextTier(targetTier)
+  const nextTierName = nextTier ? getTierDisplayName(nextTier) : null
+
+  const nextTierThreshold = nextTier === 'plus' ? 10000 : nextTier === 'premium' ? 25000 : 0
+  const nextGap = nextTierThreshold > 0 ? Math.max(0, nextTierThreshold - projectedBalance) : 0
+
+  const tierBenefits =
+    targetTier === 'plus'
+      ? ['0.95% APY on Savings', '$0.50/mo ATM Fee Waiver', '2 Included Autopays']
+      : targetTier === 'premium'
+      ? ['1.25% APY on Savings', '$0.50/mo ATM Fee Waiver', 'Unlimited Autopays']
+      : ['0.25% Standard APY']
+
+  return (
+    <div className="space-y-4">
+      {/* Tier Achievement Banner */}
+      <section
+        aria-label="Tier achievement"
+        className="bg-teal-50 border-2 border-teal-200 rounded-xl p-6 text-center"
+        aria-live="polite"
+      >
+        <p className="text-2xl mb-2" aria-hidden="true">
+          {'\ud83c\udf89'}
+        </p>
+        <h2 className="text-xl font-bold text-teal-800 mb-1">
+          {targetName} Tier Achieved!
+        </h2>
+        <p className="text-base text-teal-700">
+          You now have {formatCurrency(projectedBalance)} rolling balance
+        </p>
+        <div className="mt-4 text-left inline-block">
+          <p className="text-sm font-semibold text-teal-800 mb-2">Benefits Active Immediately:</p>
+          <ul className="space-y-1">
+            {tierBenefits.map((b) => (
+              <li key={b} className="flex items-center gap-2 text-sm text-teal-700">
+                <svg className="w-4 h-4 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {b}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* Next Milestone */}
+      {nextTier && nextGap > 0 && (
+        <section
+          aria-label="Next tier milestone"
+          className="bg-gray-50 border border-gray-200 rounded-xl p-4"
+        >
+          <p className="text-sm font-semibold text-gray-700 mb-1">Next Milestone</p>
+          <p className="text-base text-gray-900">
+            {nextTierName} Tier (requires {formatCurrency(nextTierThreshold)})
+          </p>
+          <p className="text-sm text-gray-600 mt-0.5">
+            You&apos;re {formatCurrency(nextGap)} away
+          </p>
+          <Link
+            href="/loyalty/tier-details"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-teal-600 hover:text-teal-700 hover:underline mt-2 min-h-[44px]"
+          >
+            View Tier Details
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </section>
+      )}
+    </div>
+  )
+}
+
 export default function TransferConfirmPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { session, clearSession } = useTransfer()
+  const { gap } = useTierGap()
+
+  const isLoyaltyTransfer = searchParams.get('loyalty') === 'true'
+  const targetTier = (searchParams.get('targetTier') as TierLevel) || 'plus'
 
   const [step, setStep] = useState<Step>('confirm')
   const [fromAccount, setFromAccount] = useState<AccountDetail | null>(null)
@@ -49,8 +254,9 @@ export default function TransferConfirmPage() {
 
   const { formData, feeWaiverApplied, normalFee, memberTier } = session
   const actualFee = feeWaiverApplied ? 0 : normalFee
-
   const tierLabel = memberTier === 'plus' ? 'Plus' : memberTier === 'premium' ? 'Premium' : 'Classic'
+
+  const projectedToBalance = (toAccount?.currentBalance ?? 0) + formData.amount
 
   const handleConfirm = async () => {
     setStep('processing')
@@ -76,7 +282,7 @@ export default function TransferConfirmPage() {
 
   const handleDone = () => {
     clearSession()
-    router.push('/')
+    router.push(isLoyaltyTransfer ? '/loyalty' : '/')
   }
 
   if (loading) {
@@ -161,7 +367,7 @@ export default function TransferConfirmPage() {
             </dl>
           </div>
 
-          {feeWaiverApplied && (
+          {feeWaiverApplied && !isLoyaltyTransfer && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6 text-center">
               <p className="text-sm text-emerald-700 font-medium">
                 You saved {formatCurrency(normalFee)} with your {tierLabel} tier fee waiver.
@@ -169,15 +375,35 @@ export default function TransferConfirmPage() {
             </div>
           )}
 
+          {/* Loyalty Tier Achievement */}
+          {isLoyaltyTransfer && (
+            <div className="mb-6">
+              <TierAchievementSection
+                targetTier={targetTier}
+                amount={formData.amount}
+                projectedBalance={projectedToBalance}
+              />
+            </div>
+          )}
+
           <div className="space-y-3">
             <Button variant="primary" size="lg" className="w-full" onClick={handleDone}>
-              Return to Home
+              {isLoyaltyTransfer ? 'Return to Loyalty Hub' : 'Return to Home'}
             </Button>
-            <Link href={`/accounts/${formData.fromAccountId}`} className="block">
-              <Button variant="outline" size="lg" className="w-full">
-                View Account
-              </Button>
-            </Link>
+            {isLoyaltyTransfer && (
+              <Link href="/loyalty/tier-details" className="block">
+                <Button variant="outline" size="lg" className="w-full">
+                  View Tier Details
+                </Button>
+              </Link>
+            )}
+            {!isLoyaltyTransfer && (
+              <Link href={`/accounts/${formData.fromAccountId}`} className="block">
+                <Button variant="outline" size="lg" className="w-full">
+                  View Account
+                </Button>
+              </Link>
+            )}
           </div>
         </main>
       </>
@@ -271,6 +497,16 @@ export default function TransferConfirmPage() {
           </dl>
         </section>
 
+        {/* Loyalty Impact Section */}
+        {isLoyaltyTransfer && (
+          <LoyaltyImpactSection
+            toAccountBalance={toAccount?.currentBalance ?? 0}
+            amount={formData.amount}
+            targetTier={targetTier}
+            gap={gap}
+          />
+        )}
+
         {/* Fee Impact */}
         <section
           aria-label={feeWaiverApplied ? 'Fee waived with your tier' : 'Transfer fee applies'}
@@ -306,13 +542,6 @@ export default function TransferConfirmPage() {
               <p className="text-sm text-emerald-700 ml-[52px]">
                 Fee-free transfers are included with your tier.
               </p>
-              <Link
-                href="/loyalty/benefits"
-                className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium ml-[52px] mt-2 inline-flex items-center min-h-[44px]"
-                target="_blank"
-              >
-                Learn more about your tier benefits
-              </Link>
             </div>
           ) : (
             <div>

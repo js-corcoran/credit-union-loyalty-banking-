@@ -5,6 +5,10 @@ import { TierType } from '@/lib/types'
 import { formatCurrency } from '@/lib/formatting'
 import { Button } from '@/components/shared/Button'
 import { Card } from '@/components/shared/Card'
+import { TierProgressionCTA } from '@/components/loyalty/TierProgressionCTA'
+import { LoyaltyAmountBadge } from '@/components/loyalty/LoyaltyAmountBadge'
+import { useTierGap } from '@/context/LoyaltyTransferContext'
+import { getNextTier, getTierDisplayName } from '@/lib/loyalty-transfer/utils'
 
 interface ActionSectionProps {
   currentTier: TierType
@@ -19,39 +23,95 @@ export function ActionSection({
   autopayGap,
   nextTierName,
 }: ActionSectionProps) {
-  const primaryAction =
-    balanceGap > 0
-      ? {
-          label: `Increase balance by ${formatCurrency(balanceGap)} to qualify for ${nextTierName}`,
-          cta: 'Transfer Money',
-          href: '/transfer',
-        }
-      : autopayGap > 0
-        ? {
-            label: `Add ${autopayGap} more autopay${autopayGap !== 1 ? 's' : ''} to qualify for ${nextTierName}`,
-            cta: 'Add Autopay',
-            href: '/autopay/add',
-          }
-        : null
+  const { gap, isLoading: gapLoading, refresh } = useTierGap()
+
+  const nextTier = getNextTier(currentTier)
+  const effectiveBalanceGap = gap?.tierGapAmount ?? balanceGap
+  const isAtHighestTier = currentTier === 'premium'
+  const hasBalanceGap = effectiveBalanceGap > 0
+
+  // Build tier benefits for the CTA
+  const nextTierBenefits = nextTier
+    ? [
+        {
+          label: nextTier === 'plus' ? 'APY on Savings' : 'APY on Savings',
+          value: nextTier === 'plus' ? '0.95%' : '1.25%',
+          annualSavings: nextTier === 'plus' ? 45 : 125,
+        },
+        {
+          label: 'ATM Fee Waiver',
+          value: '$0.50/mo',
+          annualSavings: 6,
+        },
+      ]
+    : []
 
   return (
     <section aria-label="Next steps">
       <h2 className="text-xl font-bold text-gray-900 mb-4">Next Steps</h2>
 
-      {primaryAction && (
+      {!isAtHighestTier && hasBalanceGap && (
+        <Card className="p-4 md:p-5 mb-4 border-l-4 border-l-teal-500">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-base text-gray-700">Balance gap to {nextTierName}:</span>
+              <LoyaltyAmountBadge
+                amount={effectiveBalanceGap}
+                isStale={gap?.calculatedAt ? (Date.now() - new Date(gap.calculatedAt).getTime() > 15 * 60 * 1000) : false}
+                showRefresh
+                onRefresh={refresh}
+                variant="compact"
+              />
+            </div>
+
+            {nextTier && nextTierBenefits.length > 0 && (
+              <div className="text-sm text-gray-600">
+                <p className="font-medium mb-1">{getTierDisplayName(nextTier)} tier includes:</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  {nextTierBenefits.map((b) => (
+                    <li key={b.label}>
+                      {b.label} ({b.value})
+                      {b.annualSavings > 0 && (
+                        <span className="text-emerald-600"> — save ~${b.annualSavings}/yr</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {nextTier && (
+              <TierProgressionCTA
+                currentTier={currentTier}
+                targetTier={nextTier}
+                tierGapAmount={effectiveBalanceGap}
+                currentBalance={gap?.currentBalance ?? 0}
+                tierThreshold={gap?.nextTierThreshold ?? 0}
+                destinationAccountId={gap?.destinationAccountId ?? 'SAV-5432'}
+                destinationAccountName="Savings"
+                destinationBalance={gap?.currentBalance ?? 0}
+                tierBenefits={nextTierBenefits}
+                isLoading={gapLoading}
+              />
+            )}
+          </div>
+        </Card>
+      )}
+
+      {!isAtHighestTier && !hasBalanceGap && autopayGap > 0 && (
         <Card className="p-4 md:p-5 mb-4 border-l-4 border-l-blue-500">
           <p className="text-base font-semibold text-gray-900 mb-3">
-            {primaryAction.label}
+            Add {autopayGap} more autopay{autopayGap !== 1 ? 's' : ''} to qualify for {nextTierName}
           </p>
-          <Link href={primaryAction.href}>
+          <Link href="/autopay/add">
             <Button variant="primary" size="md">
-              {primaryAction.cta}
+              Add Autopay
             </Button>
           </Link>
         </Card>
       )}
 
-      {!primaryAction && (
+      {isAtHighestTier && (
         <Card className="p-4 md:p-5 mb-4 border-l-4 border-l-emerald-500">
           <p className="text-base font-semibold text-emerald-700">
             You&apos;re at the highest tier! Keep maintaining your balance and autopays.

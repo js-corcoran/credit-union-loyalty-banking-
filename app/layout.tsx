@@ -4,6 +4,7 @@ import { MemberProvider } from '@/context/MemberContext'
 import { TierProvider } from '@/context/TierContext'
 import { NotificationProvider } from '@/context/NotificationContext'
 import { TransferProvider } from '@/context/TransferContext'
+import { LoyaltyTransferProvider } from '@/context/LoyaltyTransferContext'
 
 export const metadata: Metadata = {
   title: 'Home - Credit Union Banking',
@@ -22,7 +23,9 @@ export default function RootLayout({
           <TierProvider>
             <NotificationProvider>
               <TransferProvider>
-                {children}
+                <LoyaltyTransferProvider>
+                  {children}
+                </LoyaltyTransferProvider>
               </TransferProvider>
             </NotificationProvider>
           </TierProvider>
