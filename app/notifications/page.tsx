@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/shared/Button'
 
 interface NotificationItem {
@@ -215,7 +214,6 @@ export default function NotificationsPage() {
 
   return (
     <>
-      <Header />
       <main className="max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-8">
         <nav aria-label="Breadcrumb" className="mb-6">
           <ol className="flex items-center gap-2 text-sm text-gray-500">

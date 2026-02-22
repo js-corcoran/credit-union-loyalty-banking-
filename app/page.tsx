@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { Member, Transaction } from '@/lib/types'
 import { getMemberProfile, getTransactions } from '@/lib/api'
 import { TIER_CONFIGURATIONS } from '@/lib/constants'
-import { Header } from '@/components/layout/Header'
 import { TierStatusRegion } from '@/components/home/TierStatusRegion'
 import { AccountSummaryRegion } from '@/components/home/AccountSummaryRegion'
 import { RecentTransactionsRegion } from '@/components/home/RecentTransactionsRegion'
@@ -115,7 +114,6 @@ export default function HomePage() {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      <Header />
       <main
         id="main-content"
         className="max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-8"

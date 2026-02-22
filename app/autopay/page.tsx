@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { getAutopays, getMemberProfile } from '@/lib/api'
 import { AutopayDetail, TierType } from '@/lib/types'
 import { formatCurrency, formatDateShort } from '@/lib/formatting'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/shared/Button'
 import { TierBadge } from '@/components/loyalty/TierBadge'
 import { TIER_CONFIGURATIONS } from '@/lib/constants'
@@ -80,7 +79,6 @@ export default function AutopayPage() {
 
   return (
     <>
-      <Header />
       <main className="max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-6">

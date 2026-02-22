@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { getNotificationPreferences, updateNotificationPreferences, sendTestNotification, NotificationPreferencesResponse } from '@/lib/api'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/shared/Button'
 
 interface ToggleItem {
@@ -256,7 +255,6 @@ export default function SettingsPage() {
 
   return (
     <>
-      <Header />
       <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
         <nav aria-label="Breadcrumb" className="mb-6">
           <ol className="flex items-center gap-2 text-sm text-gray-500">

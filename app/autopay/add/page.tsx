@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { getMemberProfile, getAccountDetail, createAutopay, AccountDetail } from '@/lib/api'
 import { TierType } from '@/lib/types'
 import { formatCurrency } from '@/lib/formatting'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/shared/Button'
 import { TIER_CONFIGURATIONS } from '@/lib/constants'
 
@@ -114,7 +113,6 @@ export default function AutopayAddPage() {
   if (loading) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="animate-pulse space-y-6" aria-busy="true">
             <div className="h-8 w-40 bg-gray-200 rounded" />
@@ -135,7 +133,6 @@ export default function AutopayAddPage() {
   if (success) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8 text-center">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -168,7 +165,6 @@ export default function AutopayAddPage() {
 
   return (
     <>
-      <Header />
       <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
         <nav aria-label="Breadcrumb" className="mb-6">
           <ol className="flex items-center gap-2 text-sm text-gray-500">

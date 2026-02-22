@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { getFAQItems } from '@/lib/api'
 import { FAQItem } from '@/lib/types'
-import { Header } from '@/components/layout/Header'
 import { FAQItemCard } from '@/components/loyalty/FAQItemCard'
 import { Button } from '@/components/shared/Button'
 
@@ -137,7 +136,6 @@ export default function FAQPage() {
 
   return (
     <>
-      <Header />
       <main className="max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-6">

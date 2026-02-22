@@ -5,6 +5,7 @@ import { TierProvider } from '@/context/TierContext'
 import { NotificationProvider } from '@/context/NotificationContext'
 import { TransferProvider } from '@/context/TransferContext'
 import { LoyaltyTransferProvider } from '@/context/LoyaltyTransferContext'
+import { NavigationShell } from '@/components/navigation/NavigationShell'
 
 export const metadata: Metadata = {
   title: 'Home - Credit Union Banking',
@@ -24,7 +25,9 @@ export default function RootLayout({
             <NotificationProvider>
               <TransferProvider>
                 <LoyaltyTransferProvider>
-                  {children}
+                  <NavigationShell>
+                    {children}
+                  </NavigationShell>
                 </LoyaltyTransferProvider>
               </TransferProvider>
             </NotificationProvider>

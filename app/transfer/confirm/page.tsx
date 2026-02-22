@@ -9,7 +9,6 @@ import { getAccountDetail, initiateTransfer, AccountDetail } from '@/lib/api'
 import { formatCurrency } from '@/lib/formatting'
 import { getTierDisplayName, getNextTier } from '@/lib/loyalty-transfer/utils'
 import { TierLevel } from '@/lib/loyalty-transfer/types'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/shared/Button'
 
 type Step = 'confirm' | 'processing' | 'success' | 'error'
@@ -288,7 +287,6 @@ export default function TransferConfirmPage() {
   if (loading) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="animate-pulse space-y-6" aria-busy="true" aria-label="Loading confirmation">
             <div className="h-7 w-48 bg-gray-200 rounded" />
@@ -313,7 +311,6 @@ export default function TransferConfirmPage() {
   if (step === 'success') {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -414,7 +411,6 @@ export default function TransferConfirmPage() {
   if (step === 'error') {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center" role="alert">
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -442,7 +438,6 @@ export default function TransferConfirmPage() {
   // Confirm state (default)
   return (
     <>
-      <Header />
       <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-6">

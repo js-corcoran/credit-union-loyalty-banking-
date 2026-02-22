@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getTierStatus, TierStatusResponse } from '@/lib/api'
 import { formatCurrency } from '@/lib/formatting'
-import { Header } from '@/components/layout/Header'
 import { TierBadge } from '@/components/loyalty/TierBadge'
 import { TierCalculationVisual } from '@/components/loyalty/TierCalculationVisual'
 import { QualifyingAccountsList } from '@/components/loyalty/QualifyingAccountsList'
@@ -91,7 +90,6 @@ export default function AccountStatusPage() {
 
   return (
     <>
-      <Header />
       <main className="max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-6">

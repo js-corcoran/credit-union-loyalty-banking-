@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getMemberProfile, getAccountDetail, AccountDetail } from '@/lib/api'
 import { formatCurrency } from '@/lib/formatting'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/shared/Button'
 import { useTransfer } from '@/context/TransferContext'
 import { useLoyaltyTransfer, useTierGap } from '@/context/LoyaltyTransferContext'
@@ -269,7 +268,6 @@ export default function TransferPage() {
   if (loading) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="animate-pulse" aria-busy="true" aria-label="Loading transfer form">
             <div className="h-8 w-48 bg-gray-200 rounded mb-6" />
@@ -290,7 +288,6 @@ export default function TransferPage() {
 
   return (
     <>
-      <Header />
       <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-6">

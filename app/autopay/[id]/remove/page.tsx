@@ -6,7 +6,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { getAutopays, getMemberProfile, deleteAutopay } from '@/lib/api'
 import { AutopayDetail, TierType } from '@/lib/types'
 import { formatCurrency, formatDateShort } from '@/lib/formatting'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/shared/Button'
 import { TIER_CONFIGURATIONS } from '@/lib/constants'
 
@@ -87,7 +86,6 @@ export default function AutopayRemovePage() {
   if (loading) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="animate-pulse space-y-4" aria-busy="true">
             <div className="h-8 w-48 bg-gray-200 rounded" />
@@ -102,7 +100,6 @@ export default function AutopayRemovePage() {
   if (error && !autopay) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center" role="alert">
             <p className="text-base text-red-800 mb-4">{error}</p>
@@ -116,7 +113,6 @@ export default function AutopayRemovePage() {
   if (!autopay) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="bg-gray-50 rounded-xl p-6 text-center">
             <p className="text-base text-gray-600 mb-4">Autopay not found.</p>
@@ -129,7 +125,6 @@ export default function AutopayRemovePage() {
 
   return (
     <>
-      <Header />
       <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
         <nav aria-label="Breadcrumb" className="mb-6">
           <ol className="flex items-center gap-2 text-sm text-gray-500">

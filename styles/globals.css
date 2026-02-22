@@ -30,3 +30,17 @@ h3 {
   font-weight: 600;
   line-height: 1.4;
 }
+
+/* Navigation drawer slide-up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 250ms ease-out;
+}

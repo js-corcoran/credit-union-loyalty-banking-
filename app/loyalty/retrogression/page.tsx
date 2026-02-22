@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { getRetrogressionStatus, RetrogressionStatusResponse } from '@/lib/api'
 import { formatCurrency } from '@/lib/formatting'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/shared/Button'
 import { TierBadge } from '@/components/loyalty/TierBadge'
 
@@ -64,7 +63,6 @@ export default function RetrogressionPage() {
   if (loading) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="animate-pulse space-y-4" aria-busy="true">
             <div className="h-8 w-64 bg-gray-200 rounded" />
@@ -80,7 +78,6 @@ export default function RetrogressionPage() {
   if (error || !data) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center" role="alert">
             <p className="text-base text-red-800 mb-4">{error || 'Unable to determine tier status.'}</p>
@@ -97,7 +94,6 @@ export default function RetrogressionPage() {
   if (!data.isAtRisk) {
     return (
       <>
-        <Header />
         <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
           <nav aria-label="Breadcrumb" className="mb-6">
             <ol className="flex items-center gap-2 text-sm text-gray-500">
@@ -137,7 +133,6 @@ export default function RetrogressionPage() {
 
   return (
     <>
-      <Header />
       <main className="max-w-[600px] mx-auto px-4 md:px-6 py-6 md:py-8">
         <nav aria-label="Breadcrumb" className="mb-6">
           <ol className="flex items-center gap-2 text-sm text-gray-500">
